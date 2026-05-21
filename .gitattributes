@@ -1,0 +1,20 @@
+# Normalise to LF everywhere; .ps1/.cmd/.bat keep CRLF for Windows-shell hosts.
+* text=auto eol=lf
+
+*.cmd     text eol=crlf
+*.bat     text eol=crlf
+*.ps1     text eol=crlf
+
+# Binary assets — never touch
+*.png      binary
+*.jpg      binary
+*.webp     binary
+*.opus     binary
+*.mp3      binary
+*.wav      binary
+*.flac     binary
+
+# Diff hints
+*.ts       diff=typescript
+*.json     diff=json
+*.md       diff=markdown

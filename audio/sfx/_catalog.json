@@ -1,0 +1,210 @@
+{
+	"_meta": {
+		"schemaVersion": 1,
+		"description": "Curated Freesound.org CC0 sound effects catalog for game UI / event SFX. Entries are metadata-only — consumers fetch the audio via Freesound's preview-CDN (no auth needed for HQ MP3 previews) using scripts/audio/fetch-sfx.mjs in this repo. Each slot represents a game event class; multiple entries per slot give the per-play variability that makes events feel less mechanical.",
+		"licenseModel": "All entries are Creative Commons 0 (CC0) — public domain dedication. No attribution legally required, but `attribution` field is provided so consuming projects can credit authors in their docs if they choose.",
+		"usedBy": [
+			"dstefl/lunarpowerpulse — 10 slots × variant pool, encoded to Opus 96 kbps stereo, layered with procedural fallbacks"
+		]
+	},
+	"slots": {
+		"click": {
+			"intent": "Building placement / UI confirmation tap. Fires often (every 5-10 s during active play) — multiple variants are essential to avoid mechanical repetition.",
+			"recommendedDuration": "50-300 ms",
+			"variants": [
+				{
+					"id": "716245",
+					"title": "Light Taps",
+					"author": "Squirrel_404",
+					"freesound": "https://freesound.org/people/Squirrel_404/sounds/716245/",
+					"durationSec": 11.14,
+					"note": "Multi-tap recording. Extract a single tap (e.g. starting at 5.30s for 0.4s) for the slot."
+				},
+				{
+					"id": "528561",
+					"title": "Soft sci fi button",
+					"author": "Jummit",
+					"freesound": "https://freesound.org/people/Jummit/sounds/528561/",
+					"durationSec": 0.24,
+					"note": "Direct-use, no editing required."
+				}
+			]
+		},
+		"pulse": {
+			"intent": "Cycle / metronome tick — extremely subtle, fires on every game-cycle boundary.",
+			"recommendedDuration": "60-100 ms",
+			"variants": [],
+			"gapFill": {
+				"suno": "Subtle wood mechanical metronome tick, low warm thump, single short impact, no resonance, no tail, 80ms"
+			}
+		},
+		"overload": {
+			"intent": "Region power overload / system stress warning. Tense but not aggressive.",
+			"recommendedDuration": "400-600 ms",
+			"variants": [
+				{
+					"id": "844244",
+					"title": "Electric Failure — High Voltage Power Down",
+					"author": "ATP2-kh",
+					"freesound": "https://freesound.org/people/ATP2-kh/sounds/844244/",
+					"durationSec": 2.09,
+					"note": "High-frequency electrical drone suggesting overload. Trim to 1.5s for game use."
+				}
+			]
+		},
+		"dawnChime": {
+			"intent": "Survived-the-night chime. Soft, resolved, ASMR-aligned.",
+			"recommendedDuration": "1500-3000 ms",
+			"variants": [
+				{
+					"id": "553049",
+					"title": "Tibetan singing bowl",
+					"author": "itinerantmonk108",
+					"freesound": "https://freesound.org/people/itinerantmonk108/sounds/553049/",
+					"durationSec": 25.84,
+					"note": "Long single bowl strike. Trim to a 4-5s usable section."
+				},
+				{
+					"id": "628641",
+					"title": "Three Short Bell Rings",
+					"author": "el_boss",
+					"freesound": "https://freesound.org/people/el_boss/sounds/628641/",
+					"durationSec": 8.83,
+					"note": "Three discrete bell rings — split into 3 variants via silencedetect splitting (boundaries roughly at 3.5s, 6.1s)."
+				}
+			]
+		},
+		"goodEvent": {
+			"intent": "Positive in-game event toast. Bright, optimistic, brief.",
+			"recommendedDuration": "200-500 ms",
+			"variants": [
+				{
+					"id": "456965",
+					"title": "Glockenspiel success",
+					"author": "FunWithSound",
+					"freesound": "https://freesound.org/people/FunWithSound/sounds/456965/",
+					"durationSec": 2.48,
+					"note": "Bell-like positive arpeggio. Direct-use."
+				},
+				{
+					"id": "171697",
+					"title": "Menu Selection Click",
+					"author": "NenadSimic",
+					"freesound": "https://freesound.org/people/NenadSimic/sounds/171697/",
+					"durationSec": 0.23,
+					"note": "Bright UI ping. Direct-use."
+				}
+			]
+		},
+		"badEvent": {
+			"intent": "Negative in-game event toast. Two intensities recommended (mild vs severe).",
+			"recommendedDuration": "300-600 ms",
+			"variants": [
+				{
+					"id": "701703",
+					"title": "ui-mistake",
+					"author": "StavSounds",
+					"freesound": "https://freesound.org/people/StavSounds/sounds/701703/",
+					"durationSec": 0.35,
+					"note": "Feedback-friendly, the 'mild problem' variant."
+				},
+				{
+					"id": "445978",
+					"title": "Error Signal 2 (8bit)",
+					"author": "Breviceps",
+					"freesound": "https://freesound.org/people/Breviceps/sounds/445978/",
+					"durationSec": 0.57,
+					"note": "Retro 8-bit error, the 'severe problem' variant."
+				}
+			]
+		},
+		"habitatCrack": {
+			"intent": "Habitat structural damage tick. Sharp, dry — like ice or wood cracking. Fires often when stress is high — rich variant pool (7+) recommended.",
+			"recommendedDuration": "200-1000 ms",
+			"variants": [
+				{
+					"id": "183453",
+					"title": "Wood Crack 1",
+					"author": "utsuru",
+					"freesound": "https://freesound.org/people/utsuru/sounds/183453/",
+					"durationSec": 1.63,
+					"note": "Two distinct cracks in the recording — extract individually (split at ~0.94s)."
+				},
+				{
+					"id": "637746",
+					"title": "Pencil snap / twig",
+					"author": "kyles",
+					"freesound": "https://freesound.org/people/kyles/sounds/637746/",
+					"durationSec": 5.01,
+					"note": "Three snaps — split via silencedetect (clear silences at ~0.4s, 2.0s, 4.2s)."
+				},
+				{
+					"id": "183450",
+					"title": "Wood Crack 5",
+					"author": "utsuru",
+					"freesound": "https://freesound.org/people/utsuru/sounds/183450/",
+					"durationSec": 2.37,
+					"note": "Two cracks. Split at ~1.0s, 1.2s."
+				}
+			]
+		},
+		"habitatCollapse": {
+			"intent": "Habitat destruction (third crack). Low, descending, body-blow.",
+			"recommendedDuration": "1000-2000 ms",
+			"variants": [
+				{
+					"id": "149966",
+					"title": "Muffled Distant Explosion",
+					"author": "NenadSimic",
+					"freesound": "https://freesound.org/people/NenadSimic/sounds/149966/",
+					"durationSec": 5.14,
+					"note": "Direct-use. Pre-decayed, no pre-roll silence to trim."
+				},
+				{
+					"id": "438693",
+					"title": "G43 Distant Explosions",
+					"author": "craigsmith",
+					"freesound": "https://freesound.org/people/craigsmith/sounds/438693/",
+					"durationSec": 101.07,
+					"note": "Long compilation of 26+ explosions. Extract 2-3 individual instances (e.g. starting at 5.96s and 19.0s) for additional variants."
+				}
+			]
+		},
+		"he3Shipment": {
+			"intent": "Cargo / resource shipment lift-off. Ascending whoosh with Doppler descent.",
+			"recommendedDuration": "1000-3000 ms",
+			"variants": [
+				{
+					"id": "760190",
+					"title": "Sci-fi riser synth whoosh",
+					"author": "feastingfrog",
+					"freesound": "https://freesound.org/people/feastingfrog/sounds/760190/",
+					"durationSec": 3.33,
+					"note": "Direct-use. Classic Doppler arc."
+				},
+				{
+					"id": "400908",
+					"title": "Sci Fi Wooshes variations",
+					"author": "Alex_hears_things",
+					"freesound": "https://freesound.org/people/Alex_hears_things/sounds/400908/",
+					"durationSec": 44.0,
+					"note": "Multiple whoosh takes. Extract 3 individual swooshes (around 0s, 4.97s, 13.86s)."
+				}
+			]
+		},
+		"achievementUnlock": {
+			"intent": "Achievement unlocked / level complete fanfare. Triumphant but brief.",
+			"recommendedDuration": "1500-3000 ms",
+			"variants": [
+				{
+					"id": "456966",
+					"title": "Success Fanfare Brass",
+					"author": "FunWithSound",
+					"freesound": "https://freesound.org/people/FunWithSound/sounds/456966/",
+					"durationSec": 4.44,
+					"note": "Brass fanfare. Trim to first 3s for game use."
+				}
+			]
+		}
+	}
+}

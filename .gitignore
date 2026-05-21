@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# Local working dirs used by audio scripts (intermediate WAVs, demucs split output)
+.demucs-work/
+.intro-cinematic-bake.wav
+.fetched-sfx/
+
+# Editor / OS
+.vscode/
+.idea/

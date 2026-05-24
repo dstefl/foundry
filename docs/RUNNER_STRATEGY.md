@@ -68,6 +68,8 @@ The foundry install script registers every slot with this label set:
 - [ ] **Pin job-step versions, not floating tags**, for `actions/checkout@v4` and friends — even though GitHub bumps automatically, explicit majors make Dependabot churn legible.
 - [ ] **`timeout-minutes:` on every job.** Default is 360 (6 h); set 15–30 for normal CI, 60+ only for E2E / mutation runs.
 - [ ] **Don't add `if: success()`** — that's the default; it adds noise without behaviour change.
+- [ ] **For npm projects: same `cache: 'npm'` rule applies.** Drop it from `setup-node@v4` on self-hosted. `~/.npm/_cacache` persists across runs on the runner's disk; the GH Actions cache layer is the same corp-TLS overhead. Re-add `cache: 'npm'` only when falling back to ephemeral `ubuntu-latest` (e.g. the `visual-baselines` workflow that's permanently pinned there for OS parity).
+- [ ] **In `${{ cond && X || Y }}` ternaries, never use `''` for `X`.** GHA expressions short-circuit on falsy values, and the empty string is falsy. So `runner.os == 'Windows' && ''` resolves to `''`, then `|| Y` clobbers it back to whatever `Y` was — the inverse of what you wanted. Use a non-empty placeholder (`'0'`, `'off'`, `'skip'`) that the consuming gate treats as off. Hit by lunarpowerpulse PR #376 with `PLAYWRIGHT_VISUAL: ${{ runner.os == 'Windows' && '' || vars.PLAYWRIGHT_VISUAL }}` — visual tests ran on Windows anyway and all 4 failed against Ubuntu-generated baselines. Fix was `'' → '0'`. The same trap applies to `'false'` (truthy as a string) vs an actual boolean.
 
 ## Example layouts
 

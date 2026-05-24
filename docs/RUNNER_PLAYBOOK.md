@@ -187,6 +187,51 @@ the matching runner pool (label-based). No cross-talk.
 | Workflow runs on `ubuntu-latest` despite `USE_SELF_HOSTED=true` | Variable name typo, scope wrong (env var instead of repo variable), or no runner matches the label | `gh variable list --repo dstefl/<repo>` to confirm the var; `gh api repos/.../actions/runners` to confirm a runner has the requested label |
 | Branch protection blocks self-hosted run from being required-check | GitHub treats the same job name as a different check when the runner OS changes | Pin a stable job name in the workflow; don't include OS in the job's `name:` field |
 
+## VPS lockdown — how to recover if locked out
+
+The Contabo VPS (`hsim-runner` alias) is hardened with:
+
+- `dan` sudo user (passwordless sudo, key-only login)
+- Root SSH **disabled** via `/etc/ssh/sshd_config.d/90-hardening.conf`
+- Password authentication **disabled** in the same file
+- UFW deny-by-default + fail2ban
+- Root password from Contabo's provisioning email still valid for VNC console only
+
+### Re-enable root SSH (key-based, recommended)
+
+Public key is still in `/root/.ssh/authorized_keys` — just flip the directive:
+
+```bash
+ssh hsim-runner 'sudo sed -i "s/^PermitRootLogin no/PermitRootLogin yes/" /etc/ssh/sshd_config.d/90-hardening.conf && sudo sshd -t && sudo systemctl reload ssh && echo OK'
+```
+
+`ssh hsim-runner-root` then works (alias kept in `~/.ssh/config` for this case).
+
+### Re-enable password root SSH (e.g., from a machine without your key)
+
+```bash
+ssh hsim-runner 'sudo sed -i -e "s/^PermitRootLogin no/PermitRootLogin yes/" -e "s/^PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config.d/90-hardening.conf && sudo sshd -t && sudo systemctl reload ssh && echo OK'
+```
+
+### Scrub hardening entirely
+
+```bash
+ssh hsim-runner 'sudo rm /etc/ssh/sshd_config.d/90-hardening.conf && sudo systemctl reload ssh && echo OK'
+```
+
+### Locked out completely (no SSH path works)
+
+Use Contabo's browser VNC console — it's a direct VM virtual TTY, NOT
+SSH-mediated, so the sshd config doesn't apply:
+
+1. Contabo Customer Control Panel → your VPS → **VNC Console**
+2. Log in as `root` with the password from the provisioning email
+3. `rm /etc/ssh/sshd_config.d/90-hardening.conf && systemctl reload ssh`
+4. SSH access restored
+
+The VNC console is the always-available escape hatch. That's the
+recoverability guarantee that makes the rest of the hardening safe.
+
 ## Trust + token hygiene
 
 `gh` on the VPS holds a token cached at `/home/dan/.config/gh/hosts.yml`

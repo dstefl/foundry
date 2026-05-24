@@ -94,13 +94,29 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 fi
 
 apt-get update -qq
-apt-get install -y -qq curl jq tar ca-certificates git >/dev/null
+apt-get install -y -qq curl jq tar ca-certificates git lsb-release gnupg >/dev/null
 
-# Node 20+ via NodeSource if not present
-if ! command -v node >/dev/null 2>&1 || [ "$(node -v | sed 's/v//;s/\..*//')" -lt 20 ]; then
-  echo "  installing Node 20.x (NodeSource)..."
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
-  apt-get install -y -qq nodejs >/dev/null
+# Node 20+. Prefer Ubuntu's archive (whatever LTS major the distro ships):
+#   * Ubuntu 26.04 → Node 22 LTS in main archive
+#   * Ubuntu 24.04 → Node 18 LTS in main archive (too old for our pin)
+#   * Ubuntu 22.04 → Node 12 (way too old)
+# Fall back to NodeSource setup_20.x only when the archive Node is < 20.
+# NodeSource is the historical default but has a 1-2 month lag adding new
+# Ubuntu codenames, so prefer the archive path on fresh LTSs (26.04+).
+if ! command -v node >/dev/null 2>&1; then
+  apt-get install -y -qq nodejs npm >/dev/null 2>&1 || true
+fi
+node_major() { node -v 2>/dev/null | sed 's/v//;s/\..*//' || echo 0; }
+if [ "$(node_major)" -lt 20 ]; then
+  echo "  archive Node is $(node -v 2>/dev/null || echo missing); trying NodeSource setup_20.x..."
+  if curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | bash - >/dev/null 2>&1; then
+    apt-get install -y -qq nodejs >/dev/null
+  else
+    echo "ERROR: NodeSource doesn't support this codename yet ($(lsb_release -cs 2>/dev/null || echo unknown))." >&2
+    echo "       Install Node 20+ manually (try 'apt install nodejs' from the universe component" >&2
+    echo "       or 'curl -fsSL https://fnm.vercel.app/install | bash' for fnm) and re-run." >&2
+    exit 1
+  fi
 fi
 echo "  [OK] node $(node -v)"
 

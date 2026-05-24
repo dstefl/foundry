@@ -186,6 +186,7 @@ the matching runner pool (label-based). No cross-talk.
 | `WSL_E_DEFAULT_DISTRO_NOT_FOUND` on `shell: bash` steps | `system32\bash.exe` (WSL launcher) wins PATH lookup over Git Bash | The install script handles this; for an already-installed runner use `scripts/ci/fix-runner-bash-path.ps1` |
 | Workflow runs on `ubuntu-latest` despite `USE_SELF_HOSTED=true` | Variable name typo, scope wrong (env var instead of repo variable), or no runner matches the label | `gh variable list --repo dstefl/<repo>` to confirm the var; `gh api repos/.../actions/runners` to confirm a runner has the requested label |
 | Branch protection blocks self-hosted run from being required-check | GitHub treats the same job name as a different check when the runner OS changes | Pin a stable job name in the workflow; don't include OS in the job's `name:` field |
+| `ERROR: Playwright does not support chromium on ubuntu26.04-x64` on the Linux VPS | Playwright ≤ 1.60 doesn't ship a chromium binary built for Ubuntu 26.04; both `npx playwright install chromium` and `--with-deps` bail. The Contabo VPS image is Ubuntu 26.04 by default. | Pin Playwright jobs to the Windows pool (`[self-hosted, windows, <repo>-runner]`), set `PLAYWRIGHT_VISUAL=0` on Windows so visual-baseline tests skip (Ubuntu-generated baselines don't survive Windows AA / fonts). Lifts when @playwright/test ≥ 1.61 ships Ubuntu 26.04 support OR the VPS is rebuilt on an Ubuntu LTS image. |
 
 ## VPS lockdown — how to recover if locked out
 
@@ -250,13 +251,27 @@ The runners keep working. Future installs need to re-auth first.
 
 ## Cost model
 
-- **GitHub Actions billing** for self-hosted on private repos: $0.002/min
-  orchestration fee only. Negligible vs $0.008/min on `ubuntu-latest`.
+- **GitHub Actions billing** for self-hosted runners: **$0/minute** on both
+  public AND private repos. GitHub does not charge per-minute runtime for
+  self-hosted runners — only for GitHub-hosted ones. The small ongoing
+  costs are storage (artifacts > 500 MB free tier @ $0.25/GB) and outbound
+  bandwidth (largely irrelevant for typical CI); neither scales with
+  runner-minutes. (Previous editions of this doc claimed a "$0.002/min
+  orchestration fee" — that was wrong; cross-checked against
+  <https://docs.github.com/en/billing/managing-billing-for-github-actions>.)
+- **GitHub-hosted alternative** (for comparison): $0.008/min Linux,
+  $0.016/min Windows, $0.08/min macOS — on private repos only; public
+  repos are free either way. This is what you avoid by self-hosting.
 - **VPS**: Contabo VPS 10 — $4.95/mo. Hosts 3-4 projects' runners
   comfortably. Per-project marginal cost: $0.
 - **Workstation**: $0 marginal (already running).
 
 For perspective: 6 runners × 30 CI runs/month × 5 min/run = 900 min/month
-of CI time. On `ubuntu-latest` that's $7.20/month per repo. On self-hosted
-it's ~$1.80/month per repo on private, $0 on public. The VPS pays for
-itself within ~3 projects.
+of CI time. On `ubuntu-latest` (private) that's $7.20/month per repo. On
+self-hosted it's $0 either way. The VPS pays for itself within ~2 private
+repos vs the GitHub-hosted Linux rate.
+
+The "runner-minutes are free" property is what makes the strategy doc's
+preference for sequential-over-split jobs a pure win — the cost of an
+extra `npm ci` is shifted from your bill to your latency. Optimise for
+wall-clock and slot-contention, not runtime billing.

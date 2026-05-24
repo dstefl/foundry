@@ -491,7 +491,7 @@ Write-Host "REMINDER for multi-runner mode (Count >= 2): update each workflow's"
 Write-Host "Setup pnpm step to scope dest to runner.temp, e.g.:"
 Write-Host "  - uses: pnpm/action-setup@v4"
 Write-Host "    with:"
-Write-Host "      dest: \${{ runner.temp }}/setup-pnpm"
+Write-Host '      dest: ${{ runner.temp }}/setup-pnpm'
 Write-Host ""
 Write-Host "Verify in GitHub UI:"
 Write-Host "  https://github.com/$RepoOwner/$RepoName/settings/actions/runners"

@@ -5,6 +5,13 @@ Proven across `dstefl/lunarpowerpulse`, `dstefl/energeticky-semafor`, and
 `dstefl/householdsim` (the householdsim rollout is what shook out the
 multi-runner + cache-aware design currently checked in here).
 
+**To add runners to a new project**, follow the playbook at
+[`docs/RUNNER_PLAYBOOK.md`](../../docs/RUNNER_PLAYBOOK.md) — it includes a
+ready-to-paste Claude prompt that drives the whole install from scratch
+(workstation + VPS + workflow wiring + verification).
+
+The two scripts here are the building blocks that playbook calls.
+
 ## Scripts
 
 ### `setup-self-hosted-runner.ps1` — Windows host (workstation / on-prem)

@@ -1,0 +1,121 @@
+# Template GitHub Actions workflow with self-hosted-runner toggle.
+#
+# Drop into a project's .github/workflows/ci.yml. Set `vars.USE_SELF_HOSTED`
+# on the repo to 'true' to route every CI run to a self-hosted runner; unset
+# (or set to anything else) to route to GitHub-hosted ubuntu-latest.
+#
+# Pairs with scripts/ci/setup-self-hosted-runner.{ps1,sh} from foundry —
+# those scripts also flip the variable at the end of a successful install
+# unless -NoAutoToggle / NO_AUTO_TOGGLE=1 is set.
+#
+# Replace `<repo>-runner` with your repo's label (must match the label you
+# passed to the install script, e.g. `householdsim-runner` or `lunar-runner`).
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: All checks
+    # Single-line runner selection: self-hosted when the repo variable is on,
+    # ubuntu-latest otherwise. Rollback is `gh variable delete USE_SELF_HOSTED`.
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && '<repo>-runner' || 'ubuntu-latest' }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Multi-runner gotcha: pnpm/action-setup writes to $HOME/setup-pnpm
+          # by default. On a Windows host with N runners all sharing
+          # NT AUTHORITY\NETWORK SERVICE, that path is shared and concurrent
+          # jobs race on rmdir + extract. Scope to per-runner temp.
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        id: install
+        run: pnpm install --frozen-lockfile
+        # `continue-on-error: true` on every step + an Aggregate step at the
+        # end is the pattern that surfaces ALL failures in a single run
+        # instead of stopping at the first. Optional — drop the
+        # continue-on-error and Aggregate step for "first failure wins".
+        continue-on-error: true
+
+      - name: Lint
+        id: lint
+        if: steps.install.outcome == 'success'
+        run: pnpm lint
+        continue-on-error: true
+
+      - name: Typecheck
+        id: typecheck
+        if: steps.install.outcome == 'success'
+        run: pnpm typecheck
+        continue-on-error: true
+
+      - name: Test
+        id: test
+        if: steps.install.outcome == 'success'
+        run: pnpm test
+        continue-on-error: true
+
+      - name: Build
+        id: build
+        if: steps.install.outcome == 'success'
+        run: pnpm build
+        continue-on-error: true
+
+      # Add a Playwright block here if the project uses it. Same pattern.
+      # - name: Install Playwright browsers
+      #   id: pw-install
+      #   if: steps.install.outcome == 'success'
+      #   run: pnpm --filter @your/web exec playwright install --with-deps chromium
+      #   continue-on-error: true
+      # - name: E2E
+      #   id: e2e
+      #   if: steps.build.outcome == 'success' && steps.pw-install.outcome == 'success'
+      #   run: pnpm --filter @your/web e2e
+      #   continue-on-error: true
+
+      - name: Aggregate
+        shell: bash
+        run: |
+          install="${{ steps.install.outcome }}"
+          lint="${{ steps.lint.outcome }}"
+          typecheck="${{ steps.typecheck.outcome }}"
+          test="${{ steps.test.outcome }}"
+          build="${{ steps.build.outcome }}"
+          echo "install:    $install"
+          echo "lint:       $lint"
+          echo "typecheck:  $typecheck"
+          echo "test:       $test"
+          echo "build:      $build"
+          fail=0
+          for outcome in "$install" "$lint" "$typecheck" "$test" "$build"; do
+            case "$outcome" in
+              success|skipped) ;;
+              *) fail=1 ;;
+            esac
+          done
+          if [ "$fail" -eq 1 ]; then
+            echo "::error::One or more checks failed."
+            exit 1
+          fi
+          echo "All checks passed."

@@ -10,10 +10,19 @@ Companion to [`RUNNER_PLAYBOOK.md`](./RUNNER_PLAYBOOK.md). The playbook tells yo
 
 | Pool | Hosts | Slots | Strengths | Weaknesses |
 |---|---|---|---|---|
-| **Windows workstation** (e.g. ORWELLBOX) | 1 | 4 | Ryzen 9 / 32 threads / 64 GB; high single-slot throughput; persistent local pnpm-store + Playwright cache via foundry's `PNPM_STORE_PATH` machine env var. | Reboots / sleeps. Bound to one machine. |
-| **Linux VPS** (e.g. Contabo `hsim-runner`) | 1 | 2 per project, 3–4 projects shared | Always-on, cheap (~$5/mo for the box), independent of the workstation. Good for Docker, scheduled jobs, overflow. | Lower per-slot perf (4 vCPU / 8 GB shared across projects). |
+| **Windows workstation** (e.g. ORWELLBOX) | 1 | 4 | Ryzen 9 / 32 threads / 64 GB; high single-slot throughput; persistent local pnpm-store + Playwright cache via foundry's `PNPM_STORE_PATH` machine env var. | Reboots / sleeps / user-busy. Bound to one machine. Often behind a corp TLS-intercepting proxy that adds re-encryption overhead. Bandwidth is usually a home connection (asymmetric, slow upload — e.g. 110 ↓ / 18 ↑ Mbps is typical). |
+| **Linux VPS** (e.g. Contabo `hsim-runner`) | 1 | 2 per project, 3–4 projects shared | **Always-on** (independent of the workstation's sleep / reboot / user activity); **high symmetric DC bandwidth** (typically 200+ Mbps both ways — ~10× a typical home upload); **clean network path** (no corp TLS proxy); cheap (~$5/mo for the box, $0 marginal per project). Good for Docker, scheduled jobs, upload-heavy deploys, overflow. | Lower per-slot perf (4 vCPU / 8 GB shared across projects). |
 
 Capacity in a typical install: **4 Windows + 2 Linux = 6 slots** per project. GitHub Actions distributes a broadly-labelled job by whichever slot picks it up first, which is roughly **2:1 Windows-leaning** by slot count.
+
+### Network and uptime — when they tip the decision
+
+Two underrated VPS advantages most projects forget about:
+
+- **Always-on.** Scheduled jobs (cron-triggered nightly Stryker, weekly deep-fuzz, every-6h smoke-prod) need a runner that's up at 02:00 regardless of whether the workstation has been put to sleep. Pin those to `linux`.
+- **Bandwidth, especially upload.** Cloudflare Pages deploys, coverage uploads, GH Actions cache writes (if you ever re-enable `cache: pnpm`), Playwright test-report uploads — all upload-bound. A 50 MB deploy artifact on an 18 Mbps home upload takes ~22 s; on a 200 Mbps DC link it's ~2 s. If your deploy job is part of every `main` push, that compounds. Pin deploys to `linux` if upload time noticeably dominates the job.
+
+For a project with a small bundle (Gridomics-scale, ~5 MB Cloudflare artifact) the deploy upload delta is sub-second on either pool — not worth pinning. For a project with a 100+ MB build artifact (image-heavy site, large bundled fonts, packaged native binaries), the delta is real.
 
 ## The label model
 
@@ -32,7 +41,7 @@ The foundry install script registers every slot with this label set:
 |---|---|---|
 | `[self-hosted, <repo>-runner]` | **Default.** Cross-platform job, single sequential pipeline. | All 6 slots usable. ORWELLBOX claims ~2/3 by capacity; VPS picks up overflow. Zero added complexity. |
 | `[self-hosted, windows, <repo>-runner]` | Job with a Windows-only dependency, OR heavy enough that the per-slot perf delta matters (Playwright E2E, large bundles, big Vite production builds). | ORWELLBOX is faster per slot. Persistent Playwright browsers cache lives there via `PLAYWRIGHT_BROWSERS_PATH`. |
-| `[self-hosted, linux, <repo>-runner]` | Linux-only need (Docker host, certain system libs, distro-specific binary), OR a long-running scheduled job (mutation testing, deep fuzz) that shouldn't tie up workstation slots during business hours. | VPS is always-on and decoupled from the desk machine. |
+| `[self-hosted, linux, <repo>-runner]` | (a) Linux-only need (Docker host, certain system libs, distro-specific binary); (b) **scheduled / overnight job** (mutation testing, deep fuzz, smoke-prod cron) — the workstation may be asleep; (c) **upload-heavy job** (large deploy artifact, coverage / report uploads) — the VPS's ~200 Mbps DC upload beats a home ~18 Mbps upload by ~10×; (d) long-running job that shouldn't tie up workstation slots during business hours. | VPS is always-on, has symmetric DC bandwidth, and is decoupled from the desk machine. |
 | `ubuntu-latest` (literal, no array) | Manual escape hatch. Only via `gh variable delete USE_SELF_HOSTED --repo dstefl/<repo>`. | Don't hard-code this branch — the `${{ vars.USE_SELF_HOSTED == 'true' && ... || 'ubuntu-latest' }}` pattern in the workflow-toggle template already handles it. |
 
 ## Single-job vs split-jobs heuristic

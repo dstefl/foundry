@@ -61,13 +61,20 @@ The foundry install script registers every slot with this label set:
 
 ## Performance tuning checklist
 
-- [ ] **No `cache: pnpm` on `setup-node@v4` when running on self-hosted.** The foundry install script provisions a machine-level shared pnpm-store at `$PNPM_STORE_PATH` that's hard-linked across all slots and survives runs. The GH Actions cache round-trip is pure overhead — measured **~2 min per run lost** on a corp-TLS path (Gridomics 26370987662 → 26371140978 comparison: 3m 33s → 1m 31s by removing one line). If you ever fall back to `ubuntu-latest` for real (no persistent FS), re-add `cache: pnpm` there only.
+- [ ] **No `cache: pnpm` on `setup-node@v4` when running on self-hosted.** The foundry install script provisions a machine-level shared pnpm-store at `$PNPM_STORE_PATH` that's hard-linked across all slots and survives runs. The GH Actions cache round-trip is pure overhead — measured **~2 min per run lost** on a corp-TLS path. Two datapoints:
+  - **Gridomics** (single-job): 3m 33s → 1m 31s, **−58 %** (runs 26370987662 → 26371140978).
+  - **householdsim** (6-job split, sim-engine ~2.5 min critical path): 5m 3s → 2m 30s wall-clock, **−50 %** (runs 26372166413 → 26388789912). After steady-state warming of the pnpm-store across slots, individual jobs fell further: lint 95s → 25s, typecheck 106s → 55s, build 97s → 76s, sim-engine 156s → 127s.
+  - Pattern: bigger suites benefit absolutely; smaller suites benefit proportionally more (the install dominates a smaller wall-clock).
+
+  If you ever fall back to `ubuntu-latest` for real (no persistent FS), re-add `cache: pnpm` there only.
 - [ ] **`pnpm/action-setup` has `dest: ${{ runner.temp }}/setup-pnpm`.** Without it, parallel runner slots sharing `$HOME` race on rmdir + extract and crash with `EBUSY`. Mandatory for `Count >= 2`.
 - [ ] **Use Turbo for the per-package fan-out** (`pnpm test`, `pnpm typecheck`, etc.). Turbo parallelises across packages by default; you don't need to split jobs to get per-package parallelism within one runner.
 - [ ] **`concurrency:` group on the deploy job.** Prevents overlapping deploys on rapid `main` pushes; pair with `cancel-in-progress: false` so in-flight deploys complete (don't leave deployed artifact and source SHA mismatched).
+- [ ] **`concurrency:` group on the *whole CI workflow* for active-iteration projects.** Use `group: ci-${{ github.ref }}` + `cancel-in-progress: true` at the workflow top level. Rapid `main` pushes (10/h is normal during a tuning session) used to stack behind the prior run; with this group, the newer run cancels the older one the moment it queues — verified on householdsim (run 26388442979 had its E2E + sim-engine jobs cancelled after 19s + 99s when a follow-up push arrived). Note: this is *opposite* of the deploy-job advice — for deploys you DON'T want cancellation, for noisy CI you DO.
 - [ ] **Pin job-step versions, not floating tags**, for `actions/checkout@v4` and friends — even though GitHub bumps automatically, explicit majors make Dependabot churn legible.
 - [ ] **`timeout-minutes:` on every job.** Default is 360 (6 h); set 15–30 for normal CI, 60+ only for E2E / mutation runs.
 - [ ] **Don't add `if: success()`** — that's the default; it adds noise without behaviour change.
+- [ ] **Schedule Stryker / deep audits on the Linux VPS, not the workstation.** Cron-triggered weekly mutation runs (10-20 min wall time) shouldn't compete for workstation slots and shouldn't depend on whether the user left their PC awake at 02:00. Pin to `linux` label. See the "Periodic audit" example below.
 
 ## Example layouts
 
